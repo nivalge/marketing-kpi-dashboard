@@ -67,7 +67,7 @@ main { padding:24px 32px; max-width:1400px; margin:0 auto; }
 
 /* SUMMARY STRIP */
 .summary-strip {
-  display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:16px; margin-bottom:24px;
 }
 .summary-card {
   background:var(--surface); border-radius:12px;
@@ -112,6 +112,13 @@ canvas { max-height:220px; }
   font-family:var(--font); color:var(--muted);
 }
 .filter-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.social-tab {
+  padding:5px 12px; border-radius:6px; font-size:0.75rem; font-weight:600;
+  border:1px solid var(--border); background:transparent; cursor:pointer; transition:all 0.15s;
+  font-family:var(--font); color:var(--muted);
+}
+.social-tab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.social-tab:hover:not(.active) { background:var(--surface-2,#f1f5f9); color:var(--text); }
 
 table { width:100%; border-collapse:collapse; }
 th {
@@ -363,8 +370,21 @@ tr:hover td { background:#f8fafc; }
   <div class="chart-row">
     <div class="chart-card"><h3>📈 Leads — Bulanan</h3><canvas id="chartLeads"></canvas></div>
     <div class="chart-card"><h3>💰 OPP SEO — Bulanan (M IDR)</h3><canvas id="chartOpp"></canvas></div>
-    <div class="chart-card"><h3>👥 Social Media Growth</h3><canvas id="chartSocial"></canvas></div>
-    <div class="chart-card"><h3>🎯 % Pencapaian Target 2026</h3><canvas id="chartAch"></canvas></div>
+    <div class="chart-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+        <h3 style="margin:0">👥 Social Media Growth</h3>
+        <div style="display:flex;gap:6px" id="socialToggle">
+          <button class="social-tab active" id="stab-views"     onclick="buildSocialChart('views')">👁 Views</button>
+          <button class="social-tab"        id="stab-engagement" onclick="buildSocialChart('engagement')">❤️ Engagement</button>
+          <button class="social-tab"        id="stab-followers"  onclick="buildSocialChart('followers')">👤 Followers</button>
+        </div>
+      </div>
+      <canvas id="chartSocial"></canvas>
+    </div>
+    <div class="chart-card"><h3>🎯 % Pencapaian Target per Goal</h3><canvas id="chartAch"></canvas></div>
+  </div>
+  <div class="chart-row" style="grid-template-columns:1fr">
+    <div class="chart-card"><h3>📦 NPI Product Sales — Bulanan (M IDR)</h3><canvas id="chartNPI"></canvas></div>
   </div>
 
   <div class="table-wrap">
@@ -398,6 +418,9 @@ tr:hover td { background:#f8fafc; }
     <div id="mTabs"></div>
   </div>
   <div class="input-grid" id="inputForms"></div>
+  <div style="position:sticky;bottom:0;background:var(--surface);border-top:2px solid var(--border);padding:14px 24px;margin-top:20px;z-index:50;border-radius:12px;box-shadow:0 -4px 16px rgba(0,0,0,0.06)">
+    <button class="save-btn" id="saveBtnFixed" onclick="saveMonth()" style="max-width:400px;margin:0 auto;display:block">💾 Simpan Data</button>
+  </div>
 </div>
 
 <!-- ═══ RIWAYAT ═══ -->
@@ -409,9 +432,9 @@ tr:hover td { background:#f8fafc; }
   <div class="table-wrap" style="overflow-x:auto">
     <table style="min-width:900px">
       <thead><tr>
-        <th>Bulan</th><th>Leads KSS</th><th>Leads KTI</th>
-        <th>OPP SEO KSS</th><th>OPP SEO KTI</th><th>Event Leads</th>
-        <th>Str. Partner</th><th>Views</th><th>Followers</th>
+        <th>Bulan</th><th>Mktg.Exec</th><th>Leads KSS</th><th>Leads KTI</th>
+        <th>OPP KSS</th><th>OPP KTI</th><th>Event</th>
+        <th>Str. Partner</th><th>Views</th><th>Engagement</th><th>Followers</th>
         <th>NPI Sales</th><th>Input Oleh</th><th>Disimpan</th>
       </tr></thead>
       <tbody id="histBody"></tbody>
@@ -443,7 +466,7 @@ tr:hover td { background:#f8fafc; }
       <div class="guide-step">
         <div class="gsn">3</div>
         <div class="gs-text"><strong>Buat header di baris 1</strong> Ketikkan header berikut di baris pertama (tiap kata di kolom berbeda):
-          <span class="img-hint">A1: timestamp | B1: bulan | C1: leads_kss | D1: leads_kti | E1: opp_kss | F1: opp_kti | G1: event_leads | H1: strategic_partner | I1: views_total | J1: engagement_total | K1: followers_total | L1: npi_sales | M1: input_by</span>
+          <span class="img-hint">A1: timestamp | B1: bulan | C1: marketing_exec | D1: leads_kss | E1: leads_kti | F1: opp_kss | G1: opp_kti | H1: event_leads | I1: strategic_partner | J1: views_kss | K1: engagement_kss | L1: followers_kss | M1: views_sr | N1: engagement_sr | O1: followers_sr | P1: views_aed | Q1: engagement_aed | R1: followers_aed | S1: npi_sales | T1: input_by</span>
         </div>
       </div>
       <div class="guide-step">
@@ -481,12 +504,14 @@ tr:hover td { background:#f8fafc; }
       .getSheetByName(SHEET_NAME);
     <span class="k">const</span> row = [
       <span class="k">new</span> Date(), body.bulan,
+      body.marketing_exec,
       body.leads_kss, body.leads_kti,
       body.opp_kss,   body.opp_kti,
       body.event_leads, body.strategic_partner,
-      body.views_total, body.engagement_total,
-      body.followers_total, body.npi_sales,
-      body.input_by
+      body.views_kss, body.engagement_kss, body.followers_kss,
+      body.views_sr, body.engagement_sr, body.followers_sr,
+      body.views_aed, body.engagement_aed, body.followers_aed,
+      body.npi_sales, body.input_by
     ];
     <span class="k">const</span> existing = sheet.getDataRange().getValues();
     <span class="k">for</span> (<span class="k">let</span> i = 1; i &lt; existing.length; i++) {
@@ -634,16 +659,23 @@ tr:hover td { background:#f8fafc; }
 <script>
 const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const KPI_DEFS = [
-  { goal:'Leads Creation', param:'Marketing Leads — KSS & SWI', pic:'Carlos', ach2025:3044, target2026:3957, unit:'leads', key:'leads_kss' },
-  { goal:'Leads Creation', param:'Marketing Leads — KTI & ALL', pic:'Carlos', ach2025:509, target2026:662, unit:'leads', key:'leads_kti' },
+  { goal:'Leads Creation', param:'Marketing Executive', pic:'Carlos', ach2025:302, target2026:330, unit:'leads', key:'marketing_exec' },
+  { goal:'Leads Creation', param:'Leads OPP SEO — KSS & SWI', pic:'Emily', ach2025:4132, target2026:5372, unit:'leads', key:'leads_kss' },
+  { goal:'Leads Creation', param:'Leads OPP SEO — KTI & ALL', pic:'Emily', ach2025:509, target2026:662, unit:'leads', key:'leads_kti' },
   { goal:'Leads Creation', param:'OPP SEO — KSS & SWI', pic:'Emily', ach2025:49983889475, target2026:64979056317, unit:'IDR', key:'opp_kss' },
   { goal:'Leads Creation', param:'OPP SEO — KTI & ALL', pic:'Emily', ach2025:42947926438, target2026:55832304369, unit:'IDR', key:'opp_kti' },
   { goal:'Leads Creation', param:'Event Leads', pic:'Riyadi', ach2025:1331, target2026:1500, unit:'leads', key:'event_leads' },
   { goal:'Channel Creation', param:'Strategic Partner Sales', pic:'Trisa', ach2025:2413, target2026:20000, unit:'partner', key:'strategic_partner' },
-  { goal:'Corporate Branding', param:'Total Views Sosmed', pic:'Fauzi', ach2025:1534892, target2026:2518596, unit:'views', key:'views_total' },
-  { goal:'Corporate Branding', param:'Total Engagement', pic:'Fauzi', ach2025:29318, target2026:40788, unit:'engage', key:'engagement_total' },
-  { goal:'Corporate Branding', param:'Total Followers', pic:'Fauzi', ach2025:4505, target2026:18984, unit:'followers', key:'followers_total' },
-  { goal:'NPI Product', param:'NPI Product Sales', pic:'Bintang', ach2025:10234000000, target2026:13500000000, unit:'IDR', key:'npi_sales' },
+  { goal:'Corporate Branding', param:'KSS — Views', pic:'Fauzi', ach2025:299458, target2026:491379, unit:'views', key:'views_kss' },
+  { goal:'Corporate Branding', param:'KSS — Engagement', pic:'Fauzi', ach2025:7774, target2026:10815, unit:'engage', key:'engagement_kss' },
+  { goal:'Corporate Branding', param:'KSS — Followers', pic:'Fauzi', ach2025:1643, target2026:6924, unit:'followers', key:'followers_kss' },
+  { goal:'Corporate Branding', param:'Safety Ranger — Views', pic:'Fauzi', ach2025:987117, target2026:1619755, unit:'views', key:'views_sr' },
+  { goal:'Corporate Branding', param:'Safety Ranger — Engagement', pic:'Fauzi', ach2025:19151, target2026:26643, unit:'engage', key:'engagement_sr' },
+  { goal:'Corporate Branding', param:'Safety Ranger — Followers', pic:'Fauzi', ach2025:2514, target2026:10594, unit:'followers', key:'followers_sr' },
+  { goal:'Corporate Branding', param:'AED.co.id — Views', pic:'Fauzi', ach2025:248317, target2026:407462, unit:'views', key:'views_aed' },
+  { goal:'Corporate Branding', param:'AED.co.id — Engagement', pic:'Fauzi', ach2025:2393, target2026:3329, unit:'engage', key:'engagement_aed' },
+  { goal:'Corporate Branding', param:'AED.co.id — Followers', pic:'Fauzi', ach2025:348, target2026:1466, unit:'followers', key:'followers_aed' },
+  { goal:'NPI Product', param:'NPI Product Sales', pic:'Bintang', ach2025:10234000000, target2026:14550000000, unit:'IDR', key:'npi_sales' },
 ];
 
 let SCRIPT_URL = localStorage.getItem('kpi_script_url') || '';
@@ -790,9 +822,12 @@ function renderDashboard() {
 
 function renderSummary(period) {
   const configs = [
-    { label:'Total Leads (MQL)', keys:['leads_kss','leads_kti'], unit:'leads', icon:'🎯', color:'si-blue', targets:[3957,662] },
-    { label:'OPP SEO', keys:['opp_kss','opp_kti'], unit:'IDR', icon:'💰', color:'si-orange', targets:[64979056317,55832304369] },
-    { label:'Total Views Sosmed', keys:['views_total'], unit:'views', icon:'👁️', color:'si-purple', targets:[2518596] },
+    { label:'Total Leads (MQL)', keys:['marketing_exec','leads_kss','leads_kti'], unit:'leads', icon:'🎯', color:'si-blue', targets:[330,5372,662] },
+    { label:'OPP SEO Total', keys:['opp_kss','opp_kti'], unit:'IDR', icon:'💰', color:'si-orange', targets:[64979056317,55832304369] },
+    { label:'Total Views Sosmed', keys:['views_kss','views_sr','views_aed'], unit:'views', icon:'👁️', color:'si-purple', targets:[2518596] },
+    { label:'Total Engagement', keys:['engagement_kss','engagement_sr','engagement_aed'], unit:'engage', icon:'❤️', color:'si-blue', targets:[40788] },
+    { label:'Total Followers', keys:['followers_kss','followers_sr','followers_aed'], unit:'followers', icon:'👤', color:'si-green', targets:[18984] },
+    { label:'Strategic Partner', keys:['strategic_partner'], unit:'partner', icon:'🤝', color:'si-orange', targets:[20000] },
     { label:'NPI Product Sales', keys:['npi_sales'], unit:'IDR', icon:'📦', color:'si-green', targets:[13500000000] },
   ];
   document.getElementById('summaryCards').innerHTML = configs.map(c => {
@@ -847,6 +882,83 @@ function renderKpiTable(period) {
   document.getElementById('kpiBody').innerHTML = html;
 }
 
+// ─── SOCIAL CHART (togglable) ───
+function buildSocialChart(metric) {
+  const d = loadLocal();
+  const get = (key, m) => { const row = d[m]; if(!row) return null; const v = parseFloat(row[key]); return isNaN(v) ? null : v; };
+  const labs = MONTHS.map(m=>m.substring(0,3));
+
+  const cfg = {
+    views:      { keys:['views_kss','views_sr','views_aed'],       label:'Views',      unit:'', fmt:v=>v>=1e6?(v/1e6).toFixed(2)+' Jt':v.toLocaleString('id-ID') },
+    engagement: { keys:['engagement_kss','engagement_sr','engagement_aed'], label:'Engagement', unit:'', fmt:v=>v.toLocaleString('id-ID') },
+    followers:  { keys:['followers_kss','followers_sr','followers_aed'],   label:'Followers',  unit:'', fmt:v=>v.toLocaleString('id-ID') }
+  }[metric];
+
+  const brands = [
+    { label:'KSS',          key:cfg.keys[0], color:'#2563eb' },
+    { label:'Safety Ranger',key:cfg.keys[1], color:'#8b5cf6' },
+    { label:'AED.co.id',    key:cfg.keys[2], color:'#f97316' },
+  ];
+
+  const targetKeys = { views:['views_kss','views_sr','views_aed'], engagement:['engagement_kss','engagement_sr','engagement_aed'], followers:['followers_kss','followers_sr','followers_aed'] };
+  const totalTarget = KPI_DEFS.filter(k=>targetKeys[metric].includes(k.key)).reduce((s,k)=>s+k.target2026,0);
+  const monthlyTarget = totalTarget / 12;
+
+  // Update active tab
+  ['views','engagement','followers'].forEach(m=>{
+    const el = document.getElementById('stab-'+m);
+    if(el) el.classList.toggle('active', m===metric);
+  });
+
+  if(chartInstances.social) { chartInstances.social.destroy(); delete chartInstances.social; }
+
+  chartInstances.social = new Chart(document.getElementById('chartSocial').getContext('2d'),{
+    type:'bar',
+    data:{ labels:labs, datasets:[
+      ...brands.map(b=>({
+        label: b.label,
+        data: MONTHS.map((_,i)=>get(b.key,i)),
+        backgroundColor: b.color+'55',
+        borderColor: b.color,
+        borderWidth:1.5,
+        borderRadius:4,
+        stack:'social'
+      })),
+      {
+        label:`Target Bulanan`,
+        data: MONTHS.map(()=>+monthlyTarget.toFixed(0)),
+        type:'line',
+        borderColor:'#ef4444',
+        borderDash:[6,4],
+        borderWidth:2,
+        pointRadius:0,
+        fill:false,
+        stack:undefined
+      }
+    ]},
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{labels:{color:'#64748b',font:{family:'Plus Jakarta Sans',size:11}}},
+        tooltip:{
+          mode:'index',
+          callbacks:{
+            label:ctx=>`${ctx.dataset.label}: ${cfg.fmt(ctx.parsed.y||0)}`,
+            footer:items=>{
+              const total = items.filter(i=>i.dataset.stack==='social').reduce((s,i)=>s+(i.parsed.y||0),0);
+              return total ? `Total: ${cfg.fmt(total)}` : '';
+            }
+          }
+        }
+      },
+      scales:{
+        y:{stacked:true,grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans'},callback:v=>cfg.fmt(v)}},
+        x:{stacked:true,grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans'}}}
+      }
+    }
+  });
+}
+
 // ─── CHARTS ───
 function buildCharts() {
   Object.values(chartInstances).forEach(c=>c.destroy());
@@ -863,41 +975,155 @@ function buildCharts() {
     }
   };
 
+  const totalLeadsTarget2026 = KPI_DEFS.filter(k=>['leads_kss','leads_kti','marketing_exec','event_leads'].includes(k.key)).reduce((s,k)=>s+k.target2026,0);
+  const monthlyLeadsTarget = Math.round(totalLeadsTarget2026 / 12);
   chartInstances.leads = new Chart(document.getElementById('chartLeads').getContext('2d'),{
-    type:'line',
+    type:'bar',
     data:{ labels:labs, datasets:[
-      {label:'KSS & SWI',data:MONTHS.map((_,i)=>get('leads_kss',i)),borderColor:'#2563eb',backgroundColor:'#2563eb18',fill:true,tension:0.4,pointRadius:4,borderWidth:2},
-      {label:'KTI & ALL',data:MONTHS.map((_,i)=>get('leads_kti',i)),borderColor:'#8b5cf6',fill:false,tension:0.4,pointRadius:4,borderWidth:2},
+      {
+        label:'Marketing Executive',
+        data:MONTHS.map((_,i)=>get('marketing_exec',i)),
+        backgroundColor:'#f9731655',
+        borderColor:'#f97316',
+        borderWidth:1.5,
+        borderRadius:4,
+        stack:'leads'
+      },
+      {
+        label:'Leads OPP SEO — KSS & SWI',
+        data:MONTHS.map((_,i)=>get('leads_kss',i)),
+        backgroundColor:'#2563eb55',
+        borderColor:'#2563eb',
+        borderWidth:1.5,
+        borderRadius:4,
+        stack:'leads'
+      },
+      {
+        label:'Leads OPP SEO — KTI & ALL',
+        data:MONTHS.map((_,i)=>get('leads_kti',i)),
+        backgroundColor:'#8b5cf655',
+        borderColor:'#8b5cf6',
+        borderWidth:1.5,
+        borderRadius:4,
+        stack:'leads'
+      },
+      {
+        label:'Event Leads',
+        data:MONTHS.map((_,i)=>get('event_leads',i)),
+        backgroundColor:'#16a34a55',
+        borderColor:'#16a34a',
+        borderWidth:1.5,
+        borderRadius:4,
+        stack:'leads'
+      },
+      {
+        label:`Target Bulanan (${monthlyLeadsTarget.toLocaleString('id-ID')})`,
+        data:MONTHS.map(()=>monthlyLeadsTarget),
+        type:'line',
+        borderColor:'#ef4444',
+        borderDash:[6,4],
+        borderWidth:2,
+        pointRadius:0,
+        fill:false,
+        stack:undefined
+      }
     ]},
-    options:cOpts
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{labels:{color:'#64748b',font:{family:'Plus Jakarta Sans',size:11}}},
+        tooltip:{
+          mode:'index',
+          callbacks:{
+            label:ctx=>`${ctx.dataset.label}: ${(ctx.parsed.y||0).toLocaleString('id-ID')}`,
+            footer:items=>{
+              const total = items.filter(i=>i.dataset.stack==='leads').reduce((s,i)=>s+(i.parsed.y||0),0);
+              return total ? `Total: ${total.toLocaleString('id-ID')}` : '';
+            }
+          }
+        }
+      },
+      scales:{
+        y:{stacked:true,grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans'},callback:v=>v.toLocaleString('id-ID')}},
+        x:{stacked:true,grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans'}}}
+      }
+    }
   });
 
+  const totalOppTarget2026 = KPI_DEFS.filter(k=>['opp_kss','opp_kti'].includes(k.key)).reduce((s,k)=>s+k.target2026,0);
+  const monthlyOppTarget = totalOppTarget2026 / 12 / 1e9;
   chartInstances.opp = new Chart(document.getElementById('chartOpp').getContext('2d'),{
     type:'bar',
     data:{ labels:labs, datasets:[
-      {label:'KSS & SWI',data:MONTHS.map((_,i)=>{const v=get('opp_kss',i);return v?v/1e9:null}),backgroundColor:'#2563eb44',borderColor:'#2563eb',borderWidth:1.5},
-      {label:'KTI & ALL',data:MONTHS.map((_,i)=>{const v=get('opp_kti',i);return v?v/1e9:null}),backgroundColor:'#f9731644',borderColor:'#f97316',borderWidth:1.5},
+      {
+        label:'OPP SEO — KSS & SWI',
+        data:MONTHS.map((_,i)=>{const v=get('opp_kss',i);return v?v/1e9:null}),
+        backgroundColor:'#2563eb55',
+        borderColor:'#2563eb',
+        borderWidth:1.5,
+        borderRadius:4,
+        stack:'opp'
+      },
+      {
+        label:'OPP SEO — KTI & ALL',
+        data:MONTHS.map((_,i)=>{const v=get('opp_kti',i);return v?v/1e9:null}),
+        backgroundColor:'#8b5cf655',
+        borderColor:'#8b5cf6',
+        borderWidth:1.5,
+        borderRadius:4,
+        stack:'opp'
+      },
+      {
+        label:`Target Bulanan (${(monthlyOppTarget).toFixed(1)} M)`,
+        data:MONTHS.map(()=>monthlyOppTarget),
+        type:'line',
+        borderColor:'#ef4444',
+        borderDash:[6,4],
+        borderWidth:2,
+        pointRadius:0,
+        fill:false,
+        stack:undefined
+      }
     ]},
-    options:cOpts
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{labels:{color:'#64748b',font:{family:'Plus Jakarta Sans',size:11}}},
+        tooltip:{
+          mode:'index',
+          callbacks:{
+            label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y!==null?(ctx.parsed.y).toFixed(2)+' M IDR':''}`,
+            footer:items=>{
+              const total = items.filter(i=>i.dataset.stack==='opp').reduce((s,i)=>s+(i.parsed.y||0),0);
+              return total ? `Total: ${total.toFixed(2)} M IDR` : '';
+            }
+          }
+        }
+      },
+      scales:{
+        y:{stacked:true,grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans'},callback:v=>v.toFixed(1)+' M'}},
+        x:{stacked:true,grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans'}}}
+      }
+    }
   });
 
-  chartInstances.social = new Chart(document.getElementById('chartSocial').getContext('2d'),{
-    type:'line',
-    data:{ labels:labs, datasets:[
-      {label:'Views',data:MONTHS.map((_,i)=>get('views_total',i)),borderColor:'#8b5cf6',fill:false,tension:0.4,pointRadius:4,borderWidth:2},
-      {label:'Followers',data:MONTHS.map((_,i)=>get('followers_total',i)),borderColor:'#16a34a',fill:false,tension:0.4,pointRadius:4,borderWidth:2},
-    ]},
-    options:cOpts
-  });
+  buildSocialChart('views');
 
-  const aPct = KPI_DEFS.map(k=>{ const v=getYTD(k.key,'all'); return v!==null?pct(v,k.target2026):0; });
+  const goalGroups = {};
+  KPI_DEFS.forEach(k => { if(!goalGroups[k.goal]) goalGroups[k.goal]=[]; goalGroups[k.goal].push(k); });
+  const radarLabels = Object.keys(goalGroups);
+  const radarData = radarLabels.map(goal => {
+    const kpis = goalGroups[goal];
+    const pctsWithData = kpis.map(k=>{ const v=getYTD(k.key,'all'); return v!==null?pct(v,k.target2026):null; }).filter(v=>v!==null);
+    return pctsWithData.length>0 ? Math.round(pctsWithData.reduce((a,b)=>a+b,0)/pctsWithData.length) : 0;
+  });
   chartInstances.ach = new Chart(document.getElementById('chartAch').getContext('2d'),{
     type:'radar',
     data:{
-      labels: KPI_DEFS.map(k=>k.param.length>16?k.param.slice(0,16)+'…':k.param),
+      labels: radarLabels,
       datasets:[{
         label:'% vs Target',
-        data:aPct,
+        data:radarData,
         backgroundColor:'#2563eb18',
         borderColor:'#2563eb',
         pointBackgroundColor:'#2563eb',
@@ -912,9 +1138,53 @@ function buildCharts() {
         beginAtZero:true, max:100,
         angleLines:{color:'#e2e8f0'},
         grid:{color:'#e2e8f0'},
-        pointLabels:{color:'#64748b',font:{family:'Plus Jakarta Sans',size:10}},
+        pointLabels:{color:'#64748b',font:{family:'Plus Jakarta Sans',size:11}},
         ticks:{color:'#94a3b8',backdropColor:'transparent',font:{family:'Plus Jakarta Sans',size:10}}
       }}
+    }
+  });
+
+  const npiTarget2026 = KPI_DEFS.find(k=>k.key==='npi_sales')?.target2026 || 0;
+  const monthlyNpiTarget = npiTarget2026 / 12 / 1e9;
+  chartInstances.npi = new Chart(document.getElementById('chartNPI').getContext('2d'),{
+    type:'bar',
+    data:{ labels:labs, datasets:[
+      {
+        label:'NPI Product Sales',
+        data:MONTHS.map((_,i)=>{const v=get('npi_sales',i);return v?+(v/1e9).toFixed(2):null}),
+        backgroundColor:'#16a34a55',
+        borderColor:'#16a34a',
+        borderWidth:1.5,
+        borderRadius:4,
+        stack:'npi'
+      },
+      {
+        label:`Target Bulanan (${monthlyNpiTarget.toFixed(1)} M)`,
+        data:MONTHS.map(()=>+monthlyNpiTarget.toFixed(2)),
+        type:'line',
+        borderColor:'#ef4444',
+        borderDash:[6,4],
+        borderWidth:2,
+        pointRadius:0,
+        fill:false,
+        stack:undefined
+      }
+    ]},
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{labels:{color:'#64748b',font:{family:'Plus Jakarta Sans',size:11}}},
+        tooltip:{
+          mode:'index',
+          callbacks:{
+            label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y!==null?ctx.parsed.y.toFixed(2)+' M IDR':''}`
+          }
+        }
+      },
+      scales:{
+        y:{stacked:true,grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans'},callback:v=>v.toFixed(1)+' M'}},
+        x:{stacked:true,grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans'}}}
+      }
     }
   });
 }
@@ -944,8 +1214,9 @@ function renderInputForms() {
         <div class="icon">🎯</div>
         <div><h3>Leads Creation</h3><p>Update data leads & opportunity</p></div>
       </div>
-      ${field('leads_kss','Marketing Leads — KSS & SWI','Carlos','jumlah leads','number',row.leads_kss)}
-      ${field('leads_kti','Marketing Leads — KTI & ALL','Carlos','jumlah leads','number',row.leads_kti)}
+      ${field('marketing_exec','Marketing Executive','Carlos','jumlah leads','number',row.marketing_exec)}
+      ${field('leads_kss','Leads OPP SEO — KSS & SWI','Emily','jumlah leads','number',row.leads_kss)}
+      ${field('leads_kti','Leads OPP SEO — KTI & ALL','Emily','jumlah leads','number',row.leads_kti)}
       ${field('opp_kss','OPP SEO — KSS & SWI (IDR)','Emily','contoh: 5000000000','number',row.opp_kss)}
       ${field('opp_kti','OPP SEO — KTI & ALL (IDR)','Emily','contoh: 3000000000','number',row.opp_kti)}
       ${field('event_leads','Event Leads','Riyadi','jumlah leads dari event','number',row.event_leads)}
@@ -953,17 +1224,45 @@ function renderInputForms() {
     <div class="input-card">
       <div class="input-card-header">
         <div class="icon">📣</div>
-        <div><h3>Channel, Branding & NPI</h3><p>Update channel, sosmed, dan produk baru</p></div>
+        <div><h3>Channel & NPI</h3><p>Update channel dan produk baru</p></div>
       </div>
       ${field('strategic_partner','Strategic Partner (Safety Ranger Sales)','Trisa','jumlah partner','number',row.strategic_partner)}
-      ${field('views_total','Total Views Sosmed','Fauzi','total semua platform','number',row.views_total)}
-      ${field('engagement_total','Total Engagement Sosmed','Fauzi','total engagement','number',row.engagement_total)}
-      ${field('followers_total','Total Followers Sosmed','Fauzi','total followers','number',row.followers_total)}
       ${field('npi_sales','NPI Product Sales (IDR)','Bintang','contoh: 800000000','number',row.npi_sales)}
       ${field('input_by','Input oleh','','nama Anda','text',row.input_by)}
-      <button class="save-btn" id="saveBtn" onclick="saveMonth()">💾 Simpan Data ${MONTHS[currentMonth]}</button>
+    </div>
+    <div class="input-card">
+      <div class="input-card-header">
+        <div class="icon">📊</div>
+
+        <div><h3>KSS — Social Media</h3><p>Fauzi · kstrongsafety.com</p></div>
+      </div>
+      ${field('views_kss','Views','Fauzi','total views','number',row.views_kss)}
+      ${field('engagement_kss','Engagement','Fauzi','total engagement','number',row.engagement_kss)}
+      ${field('followers_kss','Followers','Fauzi','total followers','number',row.followers_kss)}
+    </div>
+    <div class="input-card">
+      <div class="input-card-header">
+        <div class="icon">🦺</div>
+        <div><h3>Safety Ranger — Social Media</h3><p>Fauzi · safetyranger.com</p></div>
+      </div>
+      ${field('views_sr','Views','Fauzi','total views','number',row.views_sr)}
+      ${field('engagement_sr','Engagement','Fauzi','total engagement','number',row.engagement_sr)}
+      ${field('followers_sr','Followers','Fauzi','total followers','number',row.followers_sr)}
+    </div>
+    <div class="input-card" style="grid-column:span 2">
+      <div class="input-card-header">
+        <div class="icon">🏥</div>
+        <div><h3>AED.co.id — Social Media</h3><p>Fauzi · aed.co.id</p></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+        <div>${field('views_aed','Views','Fauzi','total views','number',row.views_aed)}</div>
+        <div>${field('engagement_aed','Engagement','Fauzi','total engagement','number',row.engagement_aed)}</div>
+        <div>${field('followers_aed','Followers','Fauzi','total followers','number',row.followers_aed)}</div>
+      </div>
     </div>
   `;
+  const fixed = document.getElementById('saveBtnFixed');
+  if (fixed) fixed.textContent = `💾 Simpan Data ${MONTHS[currentMonth]}`;
 }
 
 function field(id, label, pic, ph, type, val) {
@@ -975,8 +1274,9 @@ function field(id, label, pic, ph, type, val) {
 
 async function saveMonth() {
   const btn = document.getElementById('saveBtn');
-  btn.classList.add('loading'); btn.textContent = '⏳ Menyimpan...';
-  const keys = ['leads_kss','leads_kti','opp_kss','opp_kti','event_leads','strategic_partner','views_total','engagement_total','followers_total','npi_sales','input_by'];
+  const btnFixed = document.getElementById('saveBtnFixed');
+  [btn, btnFixed].filter(Boolean).forEach(b => { b.classList.add('loading'); b.textContent = '⏳ Menyimpan...'; });
+  const keys = ['marketing_exec','leads_kss','leads_kti','opp_kss','opp_kti','event_leads','strategic_partner','views_kss','engagement_kss','followers_kss','views_sr','engagement_sr','followers_sr','views_aed','engagement_aed','followers_aed','npi_sales','input_by'];
   const payload = { bulan: currentMonth };
   keys.forEach(k => {
     const el = document.getElementById('f_'+k);
@@ -992,8 +1292,7 @@ async function saveMonth() {
   let sheetOk = false;
   if (SCRIPT_URL) sheetOk = await postToSheets(payload);
 
-  btn.classList.remove('loading');
-  btn.textContent = `💾 Simpan Data ${MONTHS[currentMonth]}`;
+  [btn, btnFixed].filter(Boolean).forEach(b => { b.classList.remove('loading'); b.textContent = `💾 Simpan Data ${MONTHS[currentMonth]}`; });
   renderInputTabs();
   renderHistory();
   showToast(sheetOk ? '✅ Tersimpan ke Google Sheets!' : '✅ Tersimpan lokal (Sheets tidak terhubung)', sheetOk?'success':'success');
@@ -1004,18 +1303,23 @@ function renderHistory() {
   const d = loadLocal();
   document.getElementById('histBody').innerHTML = MONTHS.map((m,i) => {
     const row = d[i] || d[String(i)];
-    if (!row) return `<tr><td><strong>${m}</strong></td><td colspan="11" style="color:var(--muted);font-size:0.78rem">Belum ada data</td></tr>`;
+    if (!row) return `<tr><td><strong>${m}</strong></td><td colspan="13" style="color:var(--muted);font-size:0.78rem">Belum ada data</td></tr>`;
     const savedAt = row.savedAt ? new Date(row.savedAt).toLocaleDateString('id-ID',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+    const vT = ['views_kss','views_sr','views_aed'].reduce((s,k)=>s+(row[k]?Number(row[k]):0),0);
+    const eT = ['engagement_kss','engagement_sr','engagement_aed'].reduce((s,k)=>s+(row[k]?Number(row[k]):0),0);
+    const fT = ['followers_kss','followers_sr','followers_aed'].reduce((s,k)=>s+(row[k]?Number(row[k]):0),0);
     return `<tr>
       <td><strong>${m}</strong></td>
+      <td>${row.marketing_exec!==undefined?Number(row.marketing_exec).toLocaleString('id'):'—'}</td>
       <td>${row.leads_kss!==undefined?Number(row.leads_kss).toLocaleString('id'):'—'}</td>
       <td>${row.leads_kti!==undefined?Number(row.leads_kti).toLocaleString('id'):'—'}</td>
       <td>${row.opp_kss!==undefined?fmt(row.opp_kss,'IDR'):'—'}</td>
       <td>${row.opp_kti!==undefined?fmt(row.opp_kti,'IDR'):'—'}</td>
       <td>${row.event_leads!==undefined?Number(row.event_leads).toLocaleString('id'):'—'}</td>
       <td>${row.strategic_partner!==undefined?Number(row.strategic_partner).toLocaleString('id'):'—'}</td>
-      <td>${row.views_total!==undefined?Number(row.views_total).toLocaleString('id'):'—'}</td>
-      <td>${row.followers_total!==undefined?Number(row.followers_total).toLocaleString('id'):'—'}</td>
+      <td>${vT?vT.toLocaleString('id'):'—'}</td>
+      <td>${eT?eT.toLocaleString('id'):'—'}</td>
+      <td>${fT?fT.toLocaleString('id'):'—'}</td>
       <td>${row.npi_sales!==undefined?fmt(row.npi_sales,'IDR'):'—'}</td>
       <td><span class="pic-badge">${row.input_by||'—'}</span></td>
       <td style="color:var(--muted);font-size:0.72rem">${savedAt}</td>
@@ -1056,12 +1360,14 @@ function doPost(e) {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
     const row = [
       new Date(), body.bulan,
+      body.marketing_exec,
       body.leads_kss, body.leads_kti,
       body.opp_kss,   body.opp_kti,
       body.event_leads, body.strategic_partner,
-      body.views_total, body.engagement_total,
-      body.followers_total, body.npi_sales,
-      body.input_by
+      body.views_kss, body.engagement_kss, body.followers_kss,
+      body.views_sr, body.engagement_sr, body.followers_sr,
+      body.views_aed, body.engagement_aed, body.followers_aed,
+      body.npi_sales, body.input_by
     ];
     const existing = sheet.getDataRange().getValues();
     for (let i = 1; i < existing.length; i++) {
