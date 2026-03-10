@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marketing KPI Dashboard 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --bg: #f0f4f8;
+  --surface: #ffffff;
+  --surface2: #f8fafc;
+  --border: #e2e8f0;
+  --accent: #2563eb;
+  --accent2: #f97316;
+  --accent3: #8b5cf6;
+  --green: #16a34a;
+  --red: #dc2626;
+  --yellow: #d97706;
+  --text: #0f172a;
+  --muted: #64748b;
+  --font: 'Plus Jakarta Sans', sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:var(--font); min-height:100vh; font-size:14px; }
+
+/* TOPBAR */
+.topbar {
+  background:var(--surface);
+  border-bottom:2px solid var(--border);
+  padding:0 32px;
+  display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:100;
+  height:60px;
+}
+.logo {
+  font-size:1.05rem; font-weight:800; letter-spacing:-0.03em;
+  display:flex; align-items:center; gap:8px;
+}
+.logo-dot { width:10px; height:10px; border-radius:50%; background:var(--accent); }
+.tab-row { display:flex; gap:4px; }
+.tab-btn {
+  padding:7px 16px; border-radius:6px; cursor:pointer;
+  font-family:var(--font); font-size:0.8rem; font-weight:600;
+  border:none; background:transparent; color:var(--muted);
+  transition:all 0.15s;
+}
+.tab-btn:hover { background:var(--bg); color:var(--text); }
+.tab-btn.active { background:var(--accent); color:#fff; }
+.status-pill {
+  font-size:0.75rem; padding:4px 12px; border-radius:99px;
+  font-weight:600; cursor:pointer; transition:all 0.2s;
+  display:flex; align-items:center; gap:6px;
+}
+.status-pill.connected { background:#dcfce7; color:var(--green); }
+.status-pill.disconnected { background:#fef3c7; color:var(--yellow); }
+.status-pill .dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+
+/* MAIN */
+main { padding:24px 32px; max-width:1400px; margin:0 auto; }
+
+.view { display:none; }
+.view.active { display:block; }
+
+/* SUMMARY STRIP */
+.summary-strip {
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:16px; margin-bottom:24px;
+}
+.summary-card {
+  background:var(--surface); border-radius:12px;
+  border:1px solid var(--border); padding:18px 20px;
+  display:flex; align-items:center; gap:14px;
+  transition:box-shadow 0.2s;
+}
+.summary-card:hover { box-shadow:0 4px 20px rgba(0,0,0,0.07); }
+.summary-icon {
+  width:44px; height:44px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.3rem; flex-shrink:0;
+}
+.si-blue { background:#dbeafe; }
+.si-orange { background:#ffedd5; }
+.si-purple { background:#ede9fe; }
+.si-green { background:#dcfce7; }
+.summary-info .label { font-size:0.72rem; color:var(--muted); font-weight:500; text-transform:uppercase; letter-spacing:.06em; }
+.summary-info .value { font-size:1.45rem; font-weight:800; letter-spacing:-0.03em; margin-top:2px; }
+.summary-info .sub { font-size:0.72rem; color:var(--muted); margin-top:3px; display:flex; align-items:center; gap:4px; }
+.badge-up { color:var(--green); font-weight:700; }
+.badge-down { color:var(--red); font-weight:700; }
+.badge-mid { color:var(--yellow); font-weight:700; }
+
+/* CHARTS */
+.chart-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+.chart-card {
+  background:var(--surface); border-radius:12px; border:1px solid var(--border);
+  padding:20px;
+}
+.chart-card h3 { font-size:0.82rem; font-weight:700; color:var(--text); margin-bottom:14px; display:flex; align-items:center; gap:6px; }
+canvas { max-height:220px; }
+
+/* KPI TABLE */
+.table-wrap { background:var(--surface); border-radius:12px; border:1px solid var(--border); overflow:hidden; }
+.table-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.table-header h3 { font-size:0.85rem; font-weight:700; }
+.filter-row { display:flex; gap:8px; }
+.filter-btn {
+  padding:5px 12px; border-radius:6px; font-size:0.75rem; font-weight:600;
+  border:1px solid var(--border); background:transparent; cursor:pointer; transition:all 0.15s;
+  font-family:var(--font); color:var(--muted);
+}
+.filter-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.social-tab {
+  padding:5px 12px; border-radius:6px; font-size:0.75rem; font-weight:600;
+  border:1px solid var(--border); background:transparent; cursor:pointer; transition:all 0.15s;
+  font-family:var(--font); color:var(--muted);
+}
+.social-tab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.social-tab:hover:not(.active) { background:var(--surface-2,#f1f5f9); color:var(--text); }
+
+table { width:100%; border-collapse:collapse; }
+th {
+  text-align:left; padding:10px 16px; background:var(--surface2);
+  font-size:0.72rem; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--muted); font-weight:600; border-bottom:1px solid var(--border);
+}
+td { padding:12px 16px; border-bottom:1px solid var(--border); vertical-align:middle; }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:#f8fafc; }
+.group-row td {
+  background:linear-gradient(90deg,#eff6ff,var(--surface2));
+  font-weight:700; font-size:0.75rem; text-transform:uppercase;
+  letter-spacing:.08em; color:var(--accent); padding:8px 16px;
+}
+
+.prog-bar { height:5px; border-radius:3px; background:var(--border); min-width:70px; overflow:hidden; }
+.prog-fill { height:100%; border-radius:3px; transition:width 0.5s; }
+.pf-good { background:linear-gradient(90deg,#16a34a,#4ade80); }
+.pf-mid { background:linear-gradient(90deg,#d97706,#fbbf24); }
+.pf-low { background:linear-gradient(90deg,#dc2626,#f87171); }
+
+.pic-badge {
+  background:var(--surface2); border:1px solid var(--border);
+  padding:2px 8px; border-radius:4px; font-size:0.72rem; color:var(--muted); font-weight:500;
+}
+.pct-text { font-size:0.75rem; color:var(--muted); min-width:32px; text-align:right; }
+
+/* MONTH TABS */
+.month-selector {
+  display:flex; gap:6px; flex-wrap:wrap; margin-bottom:20px; align-items:center;
+}
+.month-selector span { font-size:0.78rem; color:var(--muted); margin-right:4px; font-weight:600; }
+.m-tab {
+  padding:5px 13px; border-radius:20px; font-size:0.78rem; cursor:pointer;
+  border:1.5px solid var(--border); background:transparent; color:var(--muted);
+  transition:all 0.15s; font-family:var(--font); font-weight:500;
+}
+.m-tab:hover { border-color:var(--accent); color:var(--accent); }
+.m-tab.active { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:700; }
+.m-tab.filled { border-color:var(--green); color:var(--green); }
+.m-tab.active.filled { background:var(--green); border-color:var(--green); color:#fff; }
+
+/* INPUT FORMS */
+.input-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.input-card {
+  background:var(--surface); border-radius:12px; border:1px solid var(--border); padding:24px;
+}
+.input-card-header {
+  display:flex; align-items:center; gap:10px; margin-bottom:20px;
+  padding-bottom:14px; border-bottom:1px solid var(--border);
+}
+.input-card-header .icon { font-size:1.4rem; }
+.input-card-header h3 { font-size:0.95rem; font-weight:700; }
+.input-card-header p { font-size:0.75rem; color:var(--muted); margin-top:2px; }
+
+.field { margin-bottom:14px; }
+.field label { display:block; font-size:0.75rem; color:var(--muted); font-weight:600; margin-bottom:5px; letter-spacing:.01em; }
+.field .pic-hint { display:inline-block; background:#dbeafe; color:var(--accent); padding:1px 7px; border-radius:4px; font-size:0.7rem; font-weight:700; margin-left:6px; }
+.field input {
+  width:100%; background:var(--surface2); border:1.5px solid var(--border);
+  color:var(--text); padding:9px 12px; border-radius:8px;
+  font-family:var(--font); font-size:0.85rem; transition:all 0.15s;
+}
+.field input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px #2563eb18; }
+.field input::placeholder { color:#cbd5e1; }
+.field .hint { font-size:0.7rem; color:#94a3b8; margin-top:3px; }
+
+.save-btn {
+  background:var(--accent); color:#fff; border:none;
+  padding:11px 24px; border-radius:8px; font-family:var(--font);
+  font-size:0.85rem; font-weight:700; cursor:pointer; width:100%; margin-top:6px;
+  transition:all 0.15s; letter-spacing:.01em;
+}
+.save-btn:hover { background:#1d4ed8; }
+.save-btn:active { transform:scale(0.98); }
+.save-btn.loading { opacity:0.7; pointer-events:none; }
+
+/* SETUP MODAL */
+.modal-overlay {
+  position:fixed; inset:0; background:#00000066;
+  display:flex; align-items:center; justify-content:center;
+  z-index:500; padding:20px;
+}
+.modal-overlay.hidden { display:none; }
+.modal {
+  background:var(--surface); border-radius:16px; padding:32px;
+  max-width:560px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,0.2);
+}
+.modal h2 { font-size:1.2rem; font-weight:800; margin-bottom:6px; }
+.modal .sub { color:var(--muted); font-size:0.82rem; margin-bottom:24px; }
+.modal .field input { margin-bottom:0; }
+.modal-btn {
+  background:var(--accent); color:#fff; border:none; padding:11px 24px;
+  border-radius:8px; font-family:var(--font); font-size:0.85rem;
+  font-weight:700; cursor:pointer; margin-top:16px; width:100%;
+}
+.modal-btn:hover { background:#1d4ed8; }
+.steps { counter-reset:step; margin:16px 0; }
+.step {
+  display:flex; gap:12px; margin-bottom:12px; align-items:flex-start;
+  counter-increment:step;
+}
+.step-num {
+  width:22px; height:22px; border-radius:50%; background:var(--accent);
+  color:#fff; font-size:0.7rem; font-weight:700; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+}
+.step-text { font-size:0.82rem; line-height:1.5; color:var(--text); }
+.step-text strong { color:var(--accent); }
+.step-text code {
+  background:#f1f5f9; padding:1px 6px; border-radius:4px;
+  font-size:0.78rem; color:#dc2626; font-family:monospace;
+}
+.divider { border:none; border-top:1px solid var(--border); margin:20px 0; }
+.skip-btn {
+  background:transparent; border:1px solid var(--border);
+  color:var(--muted); padding:9px 20px; border-radius:8px;
+  font-family:var(--font); font-size:0.82rem; cursor:pointer; margin-top:8px; width:100%;
+}
+
+/* TOAST */
+.toast {
+  position:fixed; bottom:24px; right:24px; z-index:600;
+  padding:13px 20px; border-radius:10px; font-size:0.85rem; font-weight:600;
+  display:none; animation:toastIn 0.3s ease; box-shadow:0 8px 24px rgba(0,0,0,0.15);
+}
+.toast.success { background:var(--green); color:#fff; }
+.toast.error { background:var(--red); color:#fff; }
+@keyframes toastIn { from{transform:translateY(16px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+/* SETUP GUIDE VIEW */
+.guide-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.guide-card { background:var(--surface); border-radius:12px; border:1px solid var(--border); padding:24px; }
+.guide-card h3 { font-size:0.95rem; font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+.guide-card .sub { font-size:0.78rem; color:var(--muted); margin-bottom:18px; }
+.guide-step {
+  display:flex; gap:12px; margin-bottom:14px; align-items:flex-start;
+}
+.gsn {
+  width:24px; height:24px; border-radius:50%; background:var(--accent);
+  color:#fff; font-size:0.7rem; font-weight:700; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+}
+.gs-text { font-size:0.82rem; line-height:1.6; }
+.gs-text strong { font-weight:700; display:block; }
+.gs-text code { background:#f1f5f9; padding:2px 7px; border-radius:4px; font-size:0.75rem; color:#dc2626; font-family:monospace; }
+.gs-text .img-hint { display:block; background:#f8fafc; border:1px dashed var(--border); border-radius:6px; padding:10px 12px; margin-top:6px; font-size:0.75rem; color:var(--muted); font-style:italic; }
+.script-box {
+  background:#0f172a; border-radius:8px; padding:16px;
+  font-family:monospace; font-size:0.72rem; line-height:1.7;
+  color:#94a3b8; overflow-x:auto; margin:10px 0; white-space:pre;
+}
+.script-box .k { color:#7c3aed; }
+.script-box .s { color:#16a34a; }
+.script-box .c { color:#64748b; }
+.copy-btn {
+  background:var(--surface2); border:1px solid var(--border);
+  padding:5px 12px; border-radius:6px; font-size:0.75rem; font-weight:600;
+  cursor:pointer; font-family:var(--font); color:var(--muted); margin-top:4px;
+}
+.copy-btn:hover { background:var(--border); }
+.notice {
+  background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px;
+  padding:10px 14px; font-size:0.78rem; color:#1e40af; margin-top:12px;
+}
+
+@media(max-width:768px){
+  main { padding:16px; }
+  .topbar { padding:0 16px; }
+  .summary-strip { grid-template-columns:1fr 1fr; }
+  .chart-row { grid-template-columns:1fr; }
+  .input-grid { grid-template-columns:1fr; }
+  .guide-grid { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- SETUP MODAL -->
+<div class="modal-overlay" id="setupModal">
+  <div class="modal">
+    <h2>⚙️ Hubungkan ke Google Sheets</h2>
+    <p class="sub">Isi dua URL di bawah ini. Panduan lengkap cara mendapatkannya ada di tab <strong>"⚙️ Cara Setup"</strong>.</p>
+
+    <div class="field">
+      <label>1. Google Apps Script URL <span style="color:#dc2626">(untuk SIMPAN data)</span></label>
+      <input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/AKfyc.../exec">
+      <div class="hint">Deploy → Web App → copy URL-nya</div>
+    </div>
+
+    <div class="field" style="margin-top:12px">
+      <label>2. Google Sheets CSV URL <span style="color:#16a34a">(untuk BACA data)</span></label>
+      <input type="url" id="csvUrlInput" placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv&gid=...">
+      <div class="hint">File → Share → Publish to web → Sheet "Data" → CSV → copy link</div>
+    </div>
+
+    <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:10px 14px;font-size:0.78rem;color:#92400e;margin-top:12px">
+      💡 <strong>CSV URL berbeda dari Spreadsheet URL biasa.</strong> Harus dari menu <em>File → Share → Publish to web</em>, bukan dari address bar browser.
+    </div>
+
+    <button class="modal-btn" onclick="saveUrls()">✅ Hubungkan & Mulai</button>
+    <button class="skip-btn" onclick="skipSetup()">Gunakan dulu tanpa koneksi (data lokal saja)</button>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-dot"></div>
+    KPI Marketing Dashboard 2026
+  </div>
+  <div class="tab-row">
+    <button class="tab-btn active" onclick="switchView('dashboard',this)">📊 Dashboard</button>
+    <button class="tab-btn" onclick="switchView('input',this)">✏️ Input Data</button>
+    <button class="tab-btn" onclick="switchView('history',this)">📋 Riwayat</button>
+    <button class="tab-btn" onclick="switchView('setup',this)">⚙️ Cara Setup</button>
+  </div>
+  <div class="status-pill disconnected" id="statusPill" onclick="openModal()">
+    <div class="dot"></div><span id="statusText">Belum terhubung</span>
+  </div>
+</div>
+
+<main>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div class="view active" id="view-dashboard">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <div>
+      <h2 style="font-size:1.2rem;font-weight:800;letter-spacing:-0.03em">Ringkasan KPI Marketing 2026</h2>
+      <p style="font-size:0.78rem;color:var(--muted);margin-top:3px">Data real-time dari seluruh tim</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <label style="font-size:0.78rem;color:var(--muted);font-weight:600">Periode:</label>
+      <select id="periodSel" onchange="renderDashboard()" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text);padding:7px 12px;border-radius:8px;font-family:var(--font);font-size:0.82rem;cursor:pointer;font-weight:600">
+        <option value="all">Semua (YTD)</option>
+        <option value="0">Januari</option><option value="1">Februari</option>
+        <option value="2">Maret</option><option value="3">April</option>
+        <option value="4">Mei</option><option value="5">Juni</option>
+        <option value="6">Juli</option><option value="7">Agustus</option>
+        <option value="8">September</option><option value="9">Oktober</option>
+        <option value="10">November</option><option value="11">Desember</option>
+      </select>
+      <button onclick="fetchFromSheets()" style="background:var(--surface);border:1.5px solid var(--border);padding:7px 14px;border-radius:8px;font-family:var(--font);font-size:0.78rem;font-weight:600;cursor:pointer;color:var(--muted)">🔄 Refresh</button>
+    </div>
+  </div>
+
+  <div class="summary-strip" id="summaryCards"></div>
+
+  <div class="chart-row">
+    <div class="chart-card"><h3>📈 Leads — Bulanan</h3><canvas id="chartLeads"></canvas></div>
+    <div class="chart-card"><h3>💰 OPP SEO — Bulanan (M IDR)</h3><canvas id="chartOpp"></canvas></div>
+    <div class="chart-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+        <h3 style="margin:0">👥 Social Media Growth</h3>
+        <div style="display:flex;gap:6px" id="socialToggle">
+          <button class="social-tab active" id="stab-views"     onclick="buildSocialChart('views')">👁 Views</button>
+          <button class="social-tab"        id="stab-engagement" onclick="buildSocialChart('engagement')">❤️ Engagement</button>
+          <button class="social-tab"        id="stab-followers"  onclick="buildSocialChart('followers')">👤 Followers</button>
+        </div>
+      </div>
+      <canvas id="chartSocial"></canvas>
+    </div>
+    <div class="chart-card"><h3>🎯 % Pencapaian Target per Goal</h3><canvas id="chartAch"></canvas></div>
+  </div>
+  <div class="chart-row" style="grid-template-columns:1fr">
+    <div class="chart-card"><h3>📦 NPI Product Sales — Bulanan (M IDR)</h3><canvas id="chartNPI"></canvas></div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header">
+      <h3>📋 Detail KPI per Parameter</h3>
+      <div class="filter-row" id="filterRow">
+        <button class="filter-btn active" onclick="setFilter('all',this)">Semua</button>
+        <button class="filter-btn" onclick="setFilter('Leads Creation',this)">Leads</button>
+        <button class="filter-btn" onclick="setFilter('Channel Creation',this)">Channel</button>
+        <button class="filter-btn" onclick="setFilter('Corporate Branding',this)">Branding</button>
+        <button class="filter-btn" onclick="setFilter('NPI Product',this)">NPI</button>
+      </div>
+    </div>
+    <table><thead><tr>
+      <th>Goal</th><th>Parameter</th><th>PIC</th>
+      <th>Ach 2025</th><th>Target 2026</th><th>YTD 2026</th><th style="min-width:120px">Progress</th>
+    </tr></thead><tbody id="kpiBody"></tbody></table>
+  </div>
+</div>
+
+<!-- ═══ INPUT DATA ═══ -->
+<div class="view" id="view-input">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div>
+      <h2 style="font-size:1.1rem;font-weight:800">Input Data Bulanan</h2>
+      <p style="font-size:0.78rem;color:var(--muted);margin-top:2px">Pilih bulan lalu isi semua data yang relevan sesuai PIC</p>
+    </div>
+  </div>
+  <div class="month-selector">
+    <span>Bulan:</span>
+    <div id="mTabs"></div>
+  </div>
+  <div class="input-grid" id="inputForms"></div>
+  <div style="position:sticky;bottom:0;background:var(--surface);border-top:2px solid var(--border);padding:14px 24px;margin-top:20px;z-index:50;border-radius:12px;box-shadow:0 -4px 16px rgba(0,0,0,0.06)">
+    <button class="save-btn" id="saveBtnFixed" onclick="saveMonth()" style="max-width:400px;margin:0 auto;display:block">💾 Simpan Data</button>
+  </div>
+</div>
+
+<!-- ═══ RIWAYAT ═══ -->
+<div class="view" id="view-history">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <h2 style="font-size:1.1rem;font-weight:800">Riwayat Data Bulanan</h2>
+    <button onclick="fetchFromSheets()" style="background:var(--accent);color:#fff;border:none;padding:8px 16px;border-radius:8px;font-family:var(--font);font-size:0.8rem;font-weight:700;cursor:pointer">🔄 Sync Data</button>
+  </div>
+  <div class="table-wrap" style="overflow-x:auto">
+    <table style="min-width:900px">
+      <thead><tr>
+        <th>Bulan</th><th>Mktg.Exec</th><th>Leads KSS</th><th>Leads KTI</th>
+        <th>OPP KSS</th><th>OPP KTI</th><th>Event</th>
+        <th>Str. Partner</th><th>Views</th><th>Engagement</th><th>Followers</th>
+        <th>NPI Sales</th><th>Input Oleh</th><th>Disimpan</th>
+      </tr></thead>
+      <tbody id="histBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ CARA SETUP ═══ -->
+<div class="view" id="view-setup">
+  <div style="margin-bottom:20px">
+    <h2 style="font-size:1.2rem;font-weight:800">⚙️ Panduan Setup Database Terpusat</h2>
+    <p style="font-size:0.82rem;color:var(--muted);margin-top:4px">Ikuti langkah berikut untuk menghubungkan dashboard ini ke Google Sheets sebagai database bersama. <strong>Gratis, mudah, tidak perlu coding.</strong></p>
+  </div>
+
+  <div class="guide-grid">
+
+    <div class="guide-card">
+      <h3>📊 LANGKAH 1 — Buat Google Sheets</h3>
+      <p class="sub">Ini adalah database tempat semua data tersimpan</p>
+
+      <div class="guide-step">
+        <div class="gsn">1</div>
+        <div class="gs-text"><strong>Buka Google Sheets</strong> Pergi ke <code>sheets.google.com</code> → klik <strong>"+ Blank"</strong> untuk buat spreadsheet baru</div>
+      </div>
+      <div class="guide-step">
+        <div class="gsn">2</div>
+        <div class="gs-text"><strong>Beri nama file</strong> Klik "Untitled spreadsheet" di pojok kiri atas → ganti menjadi <code>KPI Marketing 2026</code></div>
+      </div>
+      <div class="guide-step">
+        <div class="gsn">3</div>
+        <div class="gs-text"><strong>Buat header di baris 1</strong> Ketikkan header berikut di baris pertama (tiap kata di kolom berbeda):
+          <span class="img-hint">A1: timestamp | B1: bulan | C1: marketing_exec | D1: leads_kss | E1: leads_kti | F1: opp_kss | G1: opp_kti | H1: event_leads | I1: strategic_partner | J1: views_kss | K1: engagement_kss | L1: followers_kss | M1: views_sr | N1: engagement_sr | O1: followers_sr | P1: views_aed | Q1: engagement_aed | R1: followers_aed | S1: npi_sales | T1: input_by</span>
+        </div>
+      </div>
+      <div class="guide-step">
+        <div class="gsn">4</div>
+        <div class="gs-text"><strong>Beri nama sheet</strong> Klik kanan tab "Sheet1" di bawah → pilih <strong>"Rename"</strong> → ketik <code>Data</code></div>
+      </div>
+    </div>
+
+    <div class="guide-card">
+      <h3>🔧 LANGKAH 2 — Buat Apps Script</h3>
+      <p class="sub">Hanya untuk SIMPAN data (POST). Baca data pakai CSV — tidak perlu doGet.</p>
+
+      <div class="guide-step">
+        <div class="gsn">1</div>
+        <div class="gs-text"><strong>Buka Apps Script</strong> Di Google Sheets, klik menu <strong>Extensions</strong> → <strong>Apps Script</strong></div>
+      </div>
+      <div class="guide-step">
+        <div class="gsn">2</div>
+        <div class="gs-text"><strong>Hapus kode yang ada</strong> Pilih semua teks di editor (Ctrl+A) lalu hapus</div>
+      </div>
+      <div class="guide-step">
+        <div class="gsn">3</div>
+        <div class="gs-text"><strong>Copy & paste kode ini:</strong></div>
+      </div>
+
+      <div class="script-box"><span class="c">// Apps Script hanya dipakai untuk WRITE (POST)</span>
+<span class="c">// READ dilakukan via Google Sheets CSV — tidak perlu doGet lagi</span>
+
+<span class="k">const</span> SHEET_NAME = <span class="s">'Data'</span>;
+
+<span class="k">function</span> doPost(e) {
+  <span class="k">try</span> {
+    <span class="k">const</span> body = JSON.parse(e.postData.contents);
+    <span class="k">const</span> sheet = SpreadsheetApp.getActiveSpreadsheet()
+      .getSheetByName(SHEET_NAME);
+    <span class="k">const</span> row = [
+      <span class="k">new</span> Date(), body.bulan,
+      body.marketing_exec,
+      body.leads_kss, body.leads_kti,
+      body.opp_kss,   body.opp_kti,
+      body.event_leads, body.strategic_partner,
+      body.views_kss, body.engagement_kss, body.followers_kss,
+      body.views_sr, body.engagement_sr, body.followers_sr,
+      body.views_aed, body.engagement_aed, body.followers_aed,
+      body.npi_sales, body.input_by
+    ];
+    <span class="k">const</span> existing = sheet.getDataRange().getValues();
+    <span class="k">for</span> (<span class="k">let</span> i = 1; i &lt; existing.length; i++) {
+      <span class="k">if</span> (String(existing[i][1]) === String(body.bulan)) {
+        sheet.getRange(i+1, 1, 1, row.length).setValues([row]);
+        <span class="k">return</span> ok(<span class="s">'updated'</span>);
+      }
+    }
+    sheet.appendRow(row);
+    <span class="k">return</span> ok(<span class="s">'saved'</span>);
+  } <span class="k">catch</span>(err) {
+    <span class="k">return</span> ContentService
+      .createTextOutput(JSON.stringify({ok:<span class="k">false</span>,error:err.message}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+<span class="k">function</span> ok(msg) {
+  <span class="k">return</span> ContentService
+    .createTextOutput(JSON.stringify({ok:<span class="k">true</span>,msg}))
+    .setMimeType(ContentService.MimeType.JSON);
+}</div>
+      <button class="copy-btn" onclick="copyScript()">📋 Copy Script (fix CORS)</button>
+    </div>
+
+    <div class="guide-card">
+      <h3>🚀 LANGKAH 3 — Deploy Web App</h3>
+      <p class="sub">Buat URL publik untuk dashboard terhubung</p>
+
+      <div class="guide-step">
+        <div class="gsn">1</div>
+        <div class="gs-text"><strong>Simpan script</strong> Klik ikon 💾 save atau tekan <code>Ctrl+S</code></div>
+      </div>
+      <div class="guide-step">
+        <div class="gsn">2</div>
+        <div class="gs-text"><strong>Klik Deploy</strong> Di pojok kanan atas, klik tombol biru <strong>"Deploy"</strong> → pilih <strong>"New deployment"</strong></div>
+      </div>
+      <div class="guide-step">
+        <div class="gsn">3</div>
+        <div class="gs-text"><strong>Isi pengaturan deploy:</strong>
+          <span class="img-hint">• Type: Web App<br>• Description: KPI Dashboard<br>• Execute as: Me<br>• Who has access: <strong>Anyone</strong> ← penting!</span>
+        </div>
+      </div>
+      <div class="guide-step">
+        <div class="gsn">4</div>
+        <div class="gs-text"><strong>Klik "Deploy"</strong> → <strong>"Authorize access"</strong> → pilih akun Google Anda → klik Allow</div>
+      </div>
+      <div class="guide-step">
+        <div class="gsn">5</div>
+        <div class="gs-text"><strong>Copy Web App URL</strong> Akan muncul URL yang diawali <code>https://script.google.com/macros/s/...</code> — copy URL ini</div>
+      </div>
+      <div class="notice">💡 Setiap kali Anda edit script, klik Deploy → Manage deployments → Edit → pilih "New version" agar perubahan aktif.</div>
+    </div>
+
+    <div class="guide-card">
+      <h3>📡 LANGKAH 3B — Publish Sheets ke CSV</h3>
+      <p class="sub">Ini yang dipakai dashboard untuk MEMBACA data — bebas CORS</p>
+
+      <div class="guide-step">
+        <div class="gsn">1</div>
+        <div class="gs-text"><strong>Buka Google Sheets</strong> → klik menu <strong>File</strong> → <strong>Share</strong> → <strong>Publish to web</strong></div>
+      </div>
+      <div class="guide-step">
+        <div class="gsn">2</div>
+        <div class="gs-text"><strong>Pilih sheet "Data"</strong> di dropdown pertama → pilih <strong>Comma-separated values (.csv)</strong> di dropdown kedua</div>
+      </div>
+      <div class="guide-step">
+        <div class="gsn">3</div>
+        <div class="gs-text"><strong>Klik Publish</strong> → konfirmasi OK → <strong>copy link CSV</strong> yang muncul</div>
+      </div>
+      <div class="guide-step">
+        <div class="gsn">4</div>
+        <div class="gs-text"><strong>Link CSV terlihat seperti ini:</strong>
+          <span class="img-hint">https://docs.google.com/spreadsheets/d/ID_SPREADSHEET/pub?gid=0&single=true&output=csv</span>
+        </div>
+      </div>
+      <div class="notice">⚠️ Ini BERBEDA dari link spreadsheet biasa. Harus dari menu Publish to web, bukan copy dari address bar.</div>
+    </div>
+
+    <div class="guide-card">
+      <h3>🔗 LANGKAH 4 — Hubungkan Dashboard</h3>
+      <p class="sub">Masukkan URL ke dashboard ini</p>
+
+      <div class="guide-step">
+        <div class="gsn">1</div>
+        <div class="gs-text"><strong>Klik tombol status</strong> di pojok kanan atas dashboard (bertuliskan "Belum terhubung")</div>
+      </div>
+      <div class="guide-step">
+        <div class="gsn">2</div>
+        <div class="gs-text"><strong>Paste URL</strong> yang tadi di-copy dari Apps Script → klik <strong>"Hubungkan & Mulai"</strong></div>
+      </div>
+      <div class="guide-step">
+        <div class="gsn">3</div>
+        <div class="gs-text"><strong>Bagikan file HTML ini</strong> ke seluruh anggota tim melalui Google Drive atau email. Mereka masing-masing hanya perlu memasukkan URL yang sama.</div>
+      </div>
+      <div class="guide-step">
+        <div class="gsn">4</div>
+        <div class="gs-text"><strong>Selesai!</strong> Setiap tim input data → otomatis tersimpan di Google Sheets bersama → semua orang lihat data yang sama saat klik 🔄 Refresh</div>
+      </div>
+      <div class="notice">📌 <strong>Tip untuk Notion:</strong> Buka Notion → ketik <code>/embed</code> → paste URL file HTML yang sudah di-host di Google Sites atau GitHub Pages. Panduan hosting ada di bawah.</div>
+      
+      <div style="margin-top:16px">
+        <button class="save-btn" onclick="openModal()" style="margin-top:0">⚡ Masukkan URL Sekarang</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="background:var(--surface);border-radius:12px;border:1px solid var(--border);padding:24px;margin-top:20px">
+    <h3 style="font-size:0.95rem;font-weight:700;margin-bottom:12px">🌐 Bonus: Host di GitHub Pages (gratis) → Embed di Notion</h3>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">
+      <div style="text-align:center;padding:16px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:1.5rem;margin-bottom:6px">📥</div>
+        <div style="font-size:0.75rem;font-weight:700">1. Download</div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:3px">File HTML dashboard ini</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:1.5rem;margin-bottom:6px">🐙</div>
+        <div style="font-size:0.75rem;font-weight:700">2. GitHub</div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:3px">Buat repo baru di github.com</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:1.5rem;margin-bottom:6px">📤</div>
+        <div style="font-size:0.75rem;font-weight:700">3. Upload</div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:3px">Upload HTML → rename jadi index.html</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:1.5rem;margin-bottom:6px">⚙️</div>
+        <div style="font-size:0.75rem;font-weight:700">4. Pages</div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:3px">Settings → Pages → Branch: main → Save</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:1.5rem;margin-bottom:6px">📋</div>
+        <div style="font-size:0.75rem;font-weight:700">5. Embed Notion</div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:3px">Copy URL → Notion /embed → paste</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const KPI_DEFS = [
+  { goal:'Leads Creation', param:'Marketing Executive', pic:'Carlos', ach2025:205, target2026:267, unit:'leads', key:'marketing_exec' },
+  { goal:'Leads Creation', param:'Leads OPP SEO — KSS & SWI', pic:'Emily', ach2025:4132, target2026:5372, unit:'leads', key:'leads_kss' },
+  { goal:'Leads Creation', param:'Leads OPP SEO — KTI & ALL', pic:'Emily', ach2025:509, target2026:662, unit:'leads', key:'leads_kti' },
+  { goal:'Leads Creation', param:'OPP SEO — KSS & SWI', pic:'Emily', ach2025:49983889475, target2026:64979056317, unit:'IDR', key:'opp_kss' },
+  { goal:'Leads Creation', param:'OPP SEO — KTI & ALL', pic:'Emily', ach2025:42947926438, target2026:55832304369, unit:'IDR', key:'opp_kti' },
+  { goal:'Leads Creation', param:'Event Leads', pic:'Riyadi', ach2025:1331, target2026:1500, unit:'leads', key:'event_leads' },
+  { goal:'Channel Creation', param:'Strategic Partner Sales', pic:'Trisa', ach2025:2413, target2026:20000, unit:'partner', key:'strategic_partner' },
+  { goal:'Corporate Branding', param:'KSS — Views', pic:'Fauzi', ach2025:299458, target2026:491379, unit:'views', key:'views_kss' },
+  { goal:'Corporate Branding', param:'KSS — Engagement', pic:'Fauzi', ach2025:7774, target2026:10815, unit:'engage', key:'engagement_kss' },
+  { goal:'Corporate Branding', param:'KSS — Followers', pic:'Fauzi', ach2025:1643, target2026:6924, unit:'followers', key:'followers_kss' },
+  { goal:'Corporate Branding', param:'Safety Ranger — Views', pic:'Fauzi', ach2025:987117, target2026:1619755, unit:'views', key:'views_sr' },
+  { goal:'Corporate Branding', param:'Safety Ranger — Engagement', pic:'Fauzi', ach2025:19151, target2026:26643, unit:'engage', key:'engagement_sr' },
+  { goal:'Corporate Branding', param:'Safety Ranger — Followers', pic:'Fauzi', ach2025:2514, target2026:10594, unit:'followers', key:'followers_sr' },
+  { goal:'Corporate Branding', param:'AED.co.id — Views', pic:'Fauzi', ach2025:248317, target2026:407462, unit:'views', key:'views_aed' },
+  { goal:'Corporate Branding', param:'AED.co.id — Engagement', pic:'Fauzi', ach2025:2393, target2026:3329, unit:'engage', key:'engagement_aed' },
+  { goal:'Corporate Branding', param:'AED.co.id — Followers', pic:'Fauzi', ach2025:348, target2026:1466, unit:'followers', key:'followers_aed' },
+  { goal:'NPI Product', param:'NPI Product Sales', pic:'Bintang', ach2025:10234000000, target2026:14550000000, unit:'IDR', key:'npi_sales' },
+];
+
+let SCRIPT_URL = localStorage.getItem('kpi_script_url') || '';
+let CSV_URL    = localStorage.getItem('kpi_csv_url') || '';
+let localData = JSON.parse(localStorage.getItem('kpi_data_v2') || '{}');
+let activeFilter = 'all';
+let currentMonth = new Date().getMonth();
+let chartInstances = {};
+
+// ─── STORAGE ───
+function loadLocal() { return JSON.parse(localStorage.getItem('kpi_data_v2') || '{}'); }
+function saveLocal(d) { localStorage.setItem('kpi_data_v2', JSON.stringify(d)); localData = d; }
+
+// ─── STATUS ───
+function updateStatus() {
+  const pill = document.getElementById('statusPill');
+  const txt  = document.getElementById('statusText');
+  if (SCRIPT_URL && CSV_URL) {
+    pill.className = 'status-pill connected';
+    txt.textContent = 'Terhubung (baca + simpan)';
+  } else if (CSV_URL) {
+    pill.className = 'status-pill connected';
+    txt.textContent = 'Terhubung (baca saja)';
+  } else if (SCRIPT_URL) {
+    pill.className = 'status-pill disconnected';
+    txt.textContent = 'Simpan OK — CSV belum';
+  } else {
+    pill.className = 'status-pill disconnected';
+    txt.textContent = 'Belum terhubung';
+  }
+}
+
+// ─── MODAL ───
+function openModal() {
+  document.getElementById('setupModal').classList.remove('hidden');
+  document.getElementById('scriptUrlInput').value = SCRIPT_URL;
+  document.getElementById('csvUrlInput').value = CSV_URL;
+}
+function saveUrls() {
+  const scriptUrl = document.getElementById('scriptUrlInput').value.trim();
+  const csvUrl    = document.getElementById('csvUrlInput').value.trim();
+  if (!scriptUrl && !csvUrl) { alert('Masukkan minimal satu URL'); return; }
+  if (scriptUrl) { SCRIPT_URL = scriptUrl; localStorage.setItem('kpi_script_url', scriptUrl); }
+  if (csvUrl)    { CSV_URL    = csvUrl;    localStorage.setItem('kpi_csv_url', csvUrl); }
+  document.getElementById('setupModal').classList.add('hidden');
+  updateStatus();
+  if (CSV_URL) fetchFromSheets();
+  showToast('✅ URL disimpan! Mencoba ambil data...','success');
+}
+function skipSetup() { document.getElementById('setupModal').classList.add('hidden'); }
+
+// ─── SHEETS SYNC ───
+// READ: pakai Google Sheets CSV export — ini satu-satunya cara yang 100% bebas CORS
+// Google mengizinkan fetch CSV dari mana saja kalau sheet sudah "Publish to web"
+async function fetchFromSheets() {
+  if (!CSV_URL) {
+    showToast('⚠️ CSV URL belum diisi. Klik status pill untuk setup.', 'error');
+    return;
+  }
+  showToast('⏳ Mengambil data dari Sheets...', 'success');
+  try {
+    // Tambah timestamp agar browser tidak pakai cache lama
+    const res = await fetch(CSV_URL + '&t=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    const d = parseCSV(text);
+    saveLocal(d);
+    renderDashboard();
+    renderHistory();
+    showToast('✅ Data berhasil disinkronisasi!', 'success');
+  } catch(err) {
+    showToast('❌ Gagal baca CSV. Pastikan sheet sudah "Publish to web" → CSV.', 'error');
+  }
+}
+
+// Parse CSV hasil export Google Sheets menjadi object per bulan
+function parseCSV(text) {
+  const lines = text.trim().split('\n').map(l => l.split(',').map(c => c.trim().replace(/^"|"$/g, '')));
+  if (lines.length < 2) return {};
+  const headers = lines[0];
+  const d = {};
+  lines.slice(1).forEach(cols => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = cols[i] || '');
+    const key = obj['bulan'];
+    if (key !== undefined && key !== '') d[key] = obj;
+  });
+  return d;
+}
+
+// WRITE: pakai Apps Script — fire-and-forget via no-cors fetch
+// Kita tidak bisa baca responnya (CORS), tapi data TETAP tersimpan di Sheets
+async function postToSheets(payload) {
+  if (!SCRIPT_URL) return false;
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',           // kunci: browser tidak blokir, tapi respons tidak bisa dibaca
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return true; // anggap berhasil — verifikasi lewat Refresh CSV
+  } catch(err) {
+    return false;
+  }
+}
+
+// ─── FORMAT ───
+function fmt(v, unit) {
+  if (v === null || v === undefined || v === '') return '—';
+  v = parseFloat(v);
+  if (unit === 'IDR') {
+    if (v >= 1e12) return (v/1e12).toFixed(1)+'T';
+    if (v >= 1e9) return (v/1e9).toFixed(1)+' M';
+    if (v >= 1e6) return (v/1e6).toFixed(0)+' jt';
+    return v.toLocaleString('id');
+  }
+  return v.toLocaleString('id');
+}
+
+function getYTD(key, period) {
+  const d = loadLocal();
+  let total = 0; let has = false;
+  const limit = period === 'all' ? 12 : (parseInt(period)+1);
+  for (let m=0; m<limit; m++) {
+    const row = d[m] || d[String(m)];
+    if (row && row[key] !== undefined && row[key] !== '') {
+      total += parseFloat(row[key]) || 0;
+      has = true;
+    }
+  }
+  return has ? total : null;
+}
+
+function pct(v, t) { if(!v||!t) return 0; return Math.min(100, Math.round(v/t*100)); }
+
+// ─── DASHBOARD ───
+function renderDashboard() {
+  const period = document.getElementById('periodSel')?.value || 'all';
+  renderSummary(period);
+  renderKpiTable(period);
+  buildCharts();
+}
+
+function renderSummary(period) {
+  const configs = [
+    { label:'Total Leads (MQL)', keys:['marketing_exec','leads_kss','leads_kti'], unit:'leads', icon:'🎯', color:'si-blue', targets:[267,5372,662] },
+    { label:'OPP SEO Total', keys:['opp_kss','opp_kti'], unit:'IDR', icon:'💰', color:'si-orange', targets:[64979056317,55832304369] },
+    { label:'Total Views Sosmed', keys:['views_kss','views_sr','views_aed'], unit:'views', icon:'👁️', color:'si-purple', targets:[2518596] },
+    { label:'Total Engagement', keys:['engagement_kss','engagement_sr','engagement_aed'], unit:'engage', icon:'❤️', color:'si-blue', targets:[40788] },
+    { label:'Total Followers', keys:['followers_kss','followers_sr','followers_aed'], unit:'followers', icon:'👤', color:'si-green', targets:[18984] },
+    { label:'Strategic Partner', keys:['strategic_partner'], unit:'partner', icon:'🤝', color:'si-orange', targets:[20000] },
+    { label:'NPI Product Sales', keys:['npi_sales'], unit:'IDR', icon:'📦', color:'si-green', targets:[13500000000] },
+  ];
+  document.getElementById('summaryCards').innerHTML = configs.map(c => {
+    let total=0, has=false;
+    c.keys.forEach(k => { const v=getYTD(k,period); if(v!==null){total+=v;has=true;} });
+    const tgt = c.targets.reduce((s,v)=>s+v,0);
+    const p = has ? pct(total,tgt) : null;
+    const badgeCls = p===null?'':p>=80?'badge-up':p>=50?'badge-mid':'badge-down';
+    const arrow = p===null?'':p>=80?'▲':p>=50?'⚡':'▼';
+    return `<div class="summary-card">
+      <div class="summary-icon ${c.color}">${c.icon}</div>
+      <div class="summary-info">
+        <div class="label">${c.label}</div>
+        <div class="value">${has?fmt(total,c.unit):'—'}</div>
+        <div class="sub">Target: ${fmt(tgt,c.unit)} ${p!==null?`<span class="${badgeCls}">${arrow} ${p}%</span>`:''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderKpiTable(document.getElementById('periodSel')?.value||'all');
+}
+
+function renderKpiTable(period) {
+  let lastGoal='', html='';
+  KPI_DEFS.forEach(k => {
+    if (activeFilter !== 'all' && k.goal !== activeFilter) return;
+    if (k.goal !== lastGoal) {
+      html += `<tr class="group-row"><td colspan="7">◆ ${k.goal}</td></tr>`;
+      lastGoal = k.goal;
+    }
+    const ytd = getYTD(k.key, period);
+    const p = pct(ytd, k.target2026);
+    const cls = p>=75?'pf-good':p>=40?'pf-mid':'pf-low';
+    html += `<tr>
+      <td></td>
+      <td style="font-weight:500">${k.param}</td>
+      <td><span class="pic-badge">${k.pic}</span></td>
+      <td style="color:var(--muted);font-size:0.82rem">${fmt(k.ach2025,k.unit)}</td>
+      <td style="font-weight:600">${fmt(k.target2026,k.unit)}</td>
+      <td style="font-weight:700;color:${ytd!==null?'var(--text)':'var(--muted)'}">${ytd!==null?fmt(ytd,k.unit):'belum ada'}</td>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div class="prog-bar"><div class="prog-fill ${cls}" style="width:${p}%"></div></div>
+        <span class="pct-text">${ytd!==null?p+'%':''}</span>
+      </div></td>
+    </tr>`;
+  });
+  document.getElementById('kpiBody').innerHTML = html;
+}
+
+// ─── SOCIAL CHART (togglable) ───
+function buildSocialChart(metric) {
+  const d = loadLocal();
+  const get = (key, m) => { const row = d[m]; if(!row) return null; const v = parseFloat(row[key]); return isNaN(v) ? null : v; };
+  const labs = MONTHS.map(m=>m.substring(0,3));
+
+  const cfg = {
+    views:      { keys:['views_kss','views_sr','views_aed'],       label:'Views',      unit:'', fmt:v=>v>=1e6?(v/1e6).toFixed(2)+' Jt':v.toLocaleString('id-ID') },
+    engagement: { keys:['engagement_kss','engagement_sr','engagement_aed'], label:'Engagement', unit:'', fmt:v=>v.toLocaleString('id-ID') },
+    followers:  { keys:['followers_kss','followers_sr','followers_aed'],   label:'Followers',  unit:'', fmt:v=>v.toLocaleString('id-ID') }
+  }[metric];
+
+  const brands = [
+    { label:'KSS',          key:cfg.keys[0], color:'#2563eb' },
+    { label:'Safety Ranger',key:cfg.keys[1], color:'#8b5cf6' },
+    { label:'AED.co.id',    key:cfg.keys[2], color:'#f97316' },
+  ];
+
+  const targetKeys = { views:['views_kss','views_sr','views_aed'], engagement:['engagement_kss','engagement_sr','engagement_aed'], followers:['followers_kss','followers_sr','followers_aed'] };
+  const totalTarget = KPI_DEFS.filter(k=>targetKeys[metric].includes(k.key)).reduce((s,k)=>s+k.target2026,0);
+  const monthlyTarget = totalTarget / 12;
+
+  // Update active tab
+  ['views','engagement','followers'].forEach(m=>{
+    const el = document.getElementById('stab-'+m);
+    if(el) el.classList.toggle('active', m===metric);
+  });
+
+  if(chartInstances.social) { chartInstances.social.destroy(); delete chartInstances.social; }
+
+  chartInstances.social = new Chart(document.getElementById('chartSocial').getContext('2d'),{
+    type:'bar',
+    data:{ labels:labs, datasets:[
+      ...brands.map(b=>({
+        label: b.label,
+        data: MONTHS.map((_,i)=>get(b.key,i)),
+        backgroundColor: b.color+'55',
+        borderColor: b.color,
+        borderWidth:1.5,
+        borderRadius:4,
+        stack:'social'
+      })),
+      {
+        label:`Target Bulanan`,
+        data: MONTHS.map(()=>+monthlyTarget.toFixed(0)),
+        type:'line',
+        borderColor:'#ef4444',
+        borderDash:[6,4],
+        borderWidth:2,
+        pointRadius:0,
+        fill:false,
+        stack:undefined
+      }
+    ]},
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{labels:{color:'#64748b',font:{family:'Plus Jakarta Sans',size:11}}},
+        tooltip:{
+          mode:'index',
+          callbacks:{
+            label:ctx=>`${ctx.dataset.label}: ${cfg.fmt(ctx.parsed.y||0)}`,
+            footer:items=>{
+              const total = items.filter(i=>i.dataset.stack==='social').reduce((s,i)=>s+(i.parsed.y||0),0);
+              return total ? `Total: ${cfg.fmt(total)}` : '';
+            }
+          }
+        }
+      },
+      scales:{
+        y:{stacked:true,grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans'},callback:v=>cfg.fmt(v)}},
+        x:{stacked:true,grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans'}}}
+      }
+    }
+  });
+}
+
+// ─── CHARTS ───
+function buildCharts() {
+  Object.values(chartInstances).forEach(c=>c.destroy());
+  chartInstances = {};
+  const d = loadLocal();
+  const labs = MONTHS.map(m=>m.slice(0,3));
+  const get = (key,m) => { const row=d[m]||d[String(m)]; return (row&&row[key]!==undefined)?parseFloat(row[key]):null; };
+  const cOpts = {
+    responsive:true,
+    plugins:{ legend:{ labels:{ color:'#64748b',font:{family:'Plus Jakarta Sans',size:11} } } },
+    scales:{
+      x:{grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans'}}},
+      y:{grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans'}}}
+    }
+  };
+
+  const totalLeadsTarget2026 = KPI_DEFS.filter(k=>['leads_kss','leads_kti','marketing_exec','event_leads'].includes(k.key)).reduce((s,k)=>s+k.target2026,0);
+  const monthlyLeadsTarget = Math.round(totalLeadsTarget2026 / 12);
+  chartInstances.leads = new Chart(document.getElementById('chartLeads').getContext('2d'),{
+    type:'bar',
+    data:{ labels:labs, datasets:[
+      {
+        label:'Marketing Executive',
+        data:MONTHS.map((_,i)=>get('marketing_exec',i)),
+        backgroundColor:'#f9731655',
+        borderColor:'#f97316',
+        borderWidth:1.5,
+        borderRadius:4,
+        stack:'leads'
+      },
+      {
+        label:'Leads OPP SEO — KSS & SWI',
+        data:MONTHS.map((_,i)=>get('leads_kss',i)),
+        backgroundColor:'#2563eb55',
+        borderColor:'#2563eb',
+        borderWidth:1.5,
+        borderRadius:4,
+        stack:'leads'
+      },
+      {
+        label:'Leads OPP SEO — KTI & ALL',
+        data:MONTHS.map((_,i)=>get('leads_kti',i)),
+        backgroundColor:'#8b5cf655',
+        borderColor:'#8b5cf6',
+        borderWidth:1.5,
+        borderRadius:4,
+        stack:'leads'
+      },
+      {
+        label:'Event Leads',
+        data:MONTHS.map((_,i)=>get('event_leads',i)),
+        backgroundColor:'#16a34a55',
+        borderColor:'#16a34a',
+        borderWidth:1.5,
+        borderRadius:4,
+        stack:'leads'
+      },
+      {
+        label:`Target Bulanan (${monthlyLeadsTarget.toLocaleString('id-ID')})`,
+        data:MONTHS.map(()=>monthlyLeadsTarget),
+        type:'line',
+        borderColor:'#ef4444',
+        borderDash:[6,4],
+        borderWidth:2,
+        pointRadius:0,
+        fill:false,
+        stack:undefined
+      }
+    ]},
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{labels:{color:'#64748b',font:{family:'Plus Jakarta Sans',size:11}}},
+        tooltip:{
+          mode:'index',
+          callbacks:{
+            label:ctx=>`${ctx.dataset.label}: ${(ctx.parsed.y||0).toLocaleString('id-ID')}`,
+            footer:items=>{
+              const total = items.filter(i=>i.dataset.stack==='leads').reduce((s,i)=>s+(i.parsed.y||0),0);
+              return total ? `Total: ${total.toLocaleString('id-ID')}` : '';
+            }
+          }
+        }
+      },
+      scales:{
+        y:{stacked:true,grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans'},callback:v=>v.toLocaleString('id-ID')}},
+        x:{stacked:true,grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans'}}}
+      }
+    }
+  });
+
+  const totalOppTarget2026 = KPI_DEFS.filter(k=>['opp_kss','opp_kti'].includes(k.key)).reduce((s,k)=>s+k.target2026,0);
+  const monthlyOppTarget = totalOppTarget2026 / 12 / 1e9;
+  chartInstances.opp = new Chart(document.getElementById('chartOpp').getContext('2d'),{
+    type:'bar',
+    data:{ labels:labs, datasets:[
+      {
+        label:'OPP SEO — KSS & SWI',
+        data:MONTHS.map((_,i)=>{const v=get('opp_kss',i);return v?v/1e9:null}),
+        backgroundColor:'#2563eb55',
+        borderColor:'#2563eb',
+        borderWidth:1.5,
+        borderRadius:4,
+        stack:'opp'
+      },
+      {
+        label:'OPP SEO — KTI & ALL',
+        data:MONTHS.map((_,i)=>{const v=get('opp_kti',i);return v?v/1e9:null}),
+        backgroundColor:'#8b5cf655',
+        borderColor:'#8b5cf6',
+        borderWidth:1.5,
+        borderRadius:4,
+        stack:'opp'
+      },
+      {
+        label:`Target Bulanan (${(monthlyOppTarget).toFixed(1)} M)`,
+        data:MONTHS.map(()=>monthlyOppTarget),
+        type:'line',
+        borderColor:'#ef4444',
+        borderDash:[6,4],
+        borderWidth:2,
+        pointRadius:0,
+        fill:false,
+        stack:undefined
+      }
+    ]},
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{labels:{color:'#64748b',font:{family:'Plus Jakarta Sans',size:11}}},
+        tooltip:{
+          mode:'index',
+          callbacks:{
+            label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y!==null?(ctx.parsed.y).toFixed(2)+' M IDR':''}`,
+            footer:items=>{
+              const total = items.filter(i=>i.dataset.stack==='opp').reduce((s,i)=>s+(i.parsed.y||0),0);
+              return total ? `Total: ${total.toFixed(2)} M IDR` : '';
+            }
+          }
+        }
+      },
+      scales:{
+        y:{stacked:true,grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans'},callback:v=>v.toFixed(1)+' M'}},
+        x:{stacked:true,grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans'}}}
+      }
+    }
+  });
+
+  buildSocialChart('views');
+
+  const goalGroups = {};
+  KPI_DEFS.forEach(k => { if(!goalGroups[k.goal]) goalGroups[k.goal]=[]; goalGroups[k.goal].push(k); });
+  const radarLabels = Object.keys(goalGroups);
+  const radarData = radarLabels.map(goal => {
+    const kpis = goalGroups[goal];
+    const pctsWithData = kpis.map(k=>{ const v=getYTD(k.key,'all'); return v!==null?pct(v,k.target2026):null; }).filter(v=>v!==null);
+    return pctsWithData.length>0 ? Math.round(pctsWithData.reduce((a,b)=>a+b,0)/pctsWithData.length) : 0;
+  });
+  chartInstances.ach = new Chart(document.getElementById('chartAch').getContext('2d'),{
+    type:'radar',
+    data:{
+      labels: radarLabels,
+      datasets:[{
+        label:'% vs Target',
+        data:radarData,
+        backgroundColor:'#2563eb18',
+        borderColor:'#2563eb',
+        pointBackgroundColor:'#2563eb',
+        borderWidth:2,
+        pointRadius:3,
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{ legend:{ labels:{ color:'#64748b',font:{family:'Plus Jakarta Sans',size:11} } } },
+      scales:{ r:{
+        beginAtZero:true, max:100,
+        angleLines:{color:'#e2e8f0'},
+        grid:{color:'#e2e8f0'},
+        pointLabels:{color:'#64748b',font:{family:'Plus Jakarta Sans',size:11}},
+        ticks:{color:'#94a3b8',backdropColor:'transparent',font:{family:'Plus Jakarta Sans',size:10}}
+      }}
+    }
+  });
+
+  const npiTarget2026 = KPI_DEFS.find(k=>k.key==='npi_sales')?.target2026 || 0;
+  const monthlyNpiTarget = npiTarget2026 / 12 / 1e9;
+  chartInstances.npi = new Chart(document.getElementById('chartNPI').getContext('2d'),{
+    type:'bar',
+    data:{ labels:labs, datasets:[
+      {
+        label:'NPI Product Sales',
+        data:MONTHS.map((_,i)=>{const v=get('npi_sales',i);return v?+(v/1e9).toFixed(2):null}),
+        backgroundColor:'#16a34a55',
+        borderColor:'#16a34a',
+        borderWidth:1.5,
+        borderRadius:4,
+        stack:'npi'
+      },
+      {
+        label:`Target Bulanan (${monthlyNpiTarget.toFixed(1)} M)`,
+        data:MONTHS.map(()=>+monthlyNpiTarget.toFixed(2)),
+        type:'line',
+        borderColor:'#ef4444',
+        borderDash:[6,4],
+        borderWidth:2,
+        pointRadius:0,
+        fill:false,
+        stack:undefined
+      }
+    ]},
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{labels:{color:'#64748b',font:{family:'Plus Jakarta Sans',size:11}}},
+        tooltip:{
+          mode:'index',
+          callbacks:{
+            label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y!==null?ctx.parsed.y.toFixed(2)+' M IDR':''}`
+          }
+        }
+      },
+      scales:{
+        y:{stacked:true,grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans'},callback:v=>v.toFixed(1)+' M'}},
+        x:{stacked:true,grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans'}}}
+      }
+    }
+  });
+}
+
+// ─── INPUT ───
+function renderInputTabs() {
+  const d = loadLocal();
+  document.getElementById('mTabs').innerHTML = MONTHS.map((m,i) =>
+    `<button class="m-tab ${i===currentMonth?'active':''} ${(d[i]||d[String(i)])?'filled':''}"
+      onclick="selectMonth(${i})">${m}</button>`
+  ).join('');
+}
+
+function selectMonth(i) {
+  currentMonth = i;
+  renderInputTabs();
+  renderInputForms();
+}
+
+function renderInputForms() {
+  const d = loadLocal();
+  const row = d[currentMonth] || d[String(currentMonth)] || {};
+
+  document.getElementById('inputForms').innerHTML = `
+    <div class="input-card">
+      <div class="input-card-header">
+        <div class="icon">🎯</div>
+        <div><h3>Leads Creation</h3><p>Update data leads & opportunity</p></div>
+      </div>
+      ${field('marketing_exec','Marketing Executive','Carlos','jumlah leads','number',row.marketing_exec)}
+      ${field('leads_kss','Leads OPP SEO — KSS & SWI','Emily','jumlah leads','number',row.leads_kss)}
+      ${field('leads_kti','Leads OPP SEO — KTI & ALL','Emily','jumlah leads','number',row.leads_kti)}
+      ${field('opp_kss','OPP SEO — KSS & SWI (IDR)','Emily','contoh: 5000000000','number',row.opp_kss)}
+      ${field('opp_kti','OPP SEO — KTI & ALL (IDR)','Emily','contoh: 3000000000','number',row.opp_kti)}
+      ${field('event_leads','Event Leads','Riyadi','jumlah leads dari event','number',row.event_leads)}
+    </div>
+    <div class="input-card">
+      <div class="input-card-header">
+        <div class="icon">📣</div>
+        <div><h3>Channel & NPI</h3><p>Update channel dan produk baru</p></div>
+      </div>
+      ${field('strategic_partner','Strategic Partner (Safety Ranger Sales)','Trisa','jumlah partner','number',row.strategic_partner)}
+      ${field('npi_sales','NPI Product Sales (IDR)','Bintang','contoh: 800000000','number',row.npi_sales)}
+      ${field('input_by','Input oleh','','nama Anda','text',row.input_by)}
+    </div>
+    <div class="input-card">
+      <div class="input-card-header">
+        <div class="icon">📊</div>
+
+        <div><h3>KSS — Social Media</h3><p>Fauzi · kstrongsafety.com</p></div>
+      </div>
+      ${field('views_kss','Views','Fauzi','total views','number',row.views_kss)}
+      ${field('engagement_kss','Engagement','Fauzi','total engagement','number',row.engagement_kss)}
+      ${field('followers_kss','Followers','Fauzi','total followers','number',row.followers_kss)}
+    </div>
+    <div class="input-card">
+      <div class="input-card-header">
+        <div class="icon">🦺</div>
+        <div><h3>Safety Ranger — Social Media</h3><p>Fauzi · safetyranger.com</p></div>
+      </div>
+      ${field('views_sr','Views','Fauzi','total views','number',row.views_sr)}
+      ${field('engagement_sr','Engagement','Fauzi','total engagement','number',row.engagement_sr)}
+      ${field('followers_sr','Followers','Fauzi','total followers','number',row.followers_sr)}
+    </div>
+    <div class="input-card" style="grid-column:span 2">
+      <div class="input-card-header">
+        <div class="icon">🏥</div>
+        <div><h3>AED.co.id — Social Media</h3><p>Fauzi · aed.co.id</p></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+        <div>${field('views_aed','Views','Fauzi','total views','number',row.views_aed)}</div>
+        <div>${field('engagement_aed','Engagement','Fauzi','total engagement','number',row.engagement_aed)}</div>
+        <div>${field('followers_aed','Followers','Fauzi','total followers','number',row.followers_aed)}</div>
+      </div>
+    </div>
+  `;
+  const fixed = document.getElementById('saveBtnFixed');
+  if (fixed) fixed.textContent = `💾 Simpan Data ${MONTHS[currentMonth]}`;
+}
+
+function field(id, label, pic, ph, type, val) {
+  return `<div class="field">
+    <label>${label}${pic?`<span class="pic-hint">👤 ${pic}</span>`:''}  </label>
+    <input type="${type}" id="f_${id}" placeholder="${ph}" value="${val!==undefined&&val!==''?val:''}">
+  </div>`;
+}
+
+async function saveMonth() {
+  const btn = document.getElementById('saveBtn');
+  const btnFixed = document.getElementById('saveBtnFixed');
+  [btn, btnFixed].filter(Boolean).forEach(b => { b.classList.add('loading'); b.textContent = '⏳ Menyimpan...'; });
+  const keys = ['marketing_exec','leads_kss','leads_kti','opp_kss','opp_kti','event_leads','strategic_partner','views_kss','engagement_kss','followers_kss','views_sr','engagement_sr','followers_sr','views_aed','engagement_aed','followers_aed','npi_sales','input_by'];
+  const payload = { bulan: currentMonth };
+  keys.forEach(k => {
+    const el = document.getElementById('f_'+k);
+    if (el && el.value!=='') payload[k] = el.type==='text' ? el.value : parseFloat(el.value);
+  });
+
+  // Save local
+  const d = loadLocal();
+  d[currentMonth] = {...(d[currentMonth]||{}), ...payload, savedAt: new Date().toISOString()};
+  saveLocal(d);
+
+  // Post to Sheets
+  let sheetOk = false;
+  if (SCRIPT_URL) sheetOk = await postToSheets(payload);
+
+  [btn, btnFixed].filter(Boolean).forEach(b => { b.classList.remove('loading'); b.textContent = `💾 Simpan Data ${MONTHS[currentMonth]}`; });
+  renderInputTabs();
+  renderHistory();
+  showToast(sheetOk ? '✅ Tersimpan ke Google Sheets!' : '✅ Tersimpan lokal (Sheets tidak terhubung)', sheetOk?'success':'success');
+}
+
+// ─── HISTORY ───
+function renderHistory() {
+  const d = loadLocal();
+  document.getElementById('histBody').innerHTML = MONTHS.map((m,i) => {
+    const row = d[i] || d[String(i)];
+    if (!row) return `<tr><td><strong>${m}</strong></td><td colspan="13" style="color:var(--muted);font-size:0.78rem">Belum ada data</td></tr>`;
+    const savedAt = row.savedAt ? new Date(row.savedAt).toLocaleDateString('id-ID',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+    const vT = ['views_kss','views_sr','views_aed'].reduce((s,k)=>s+(row[k]?Number(row[k]):0),0);
+    const eT = ['engagement_kss','engagement_sr','engagement_aed'].reduce((s,k)=>s+(row[k]?Number(row[k]):0),0);
+    const fT = ['followers_kss','followers_sr','followers_aed'].reduce((s,k)=>s+(row[k]?Number(row[k]):0),0);
+    return `<tr>
+      <td><strong>${m}</strong></td>
+      <td>${row.marketing_exec!==undefined?Number(row.marketing_exec).toLocaleString('id'):'—'}</td>
+      <td>${row.leads_kss!==undefined?Number(row.leads_kss).toLocaleString('id'):'—'}</td>
+      <td>${row.leads_kti!==undefined?Number(row.leads_kti).toLocaleString('id'):'—'}</td>
+      <td>${row.opp_kss!==undefined?fmt(row.opp_kss,'IDR'):'—'}</td>
+      <td>${row.opp_kti!==undefined?fmt(row.opp_kti,'IDR'):'—'}</td>
+      <td>${row.event_leads!==undefined?Number(row.event_leads).toLocaleString('id'):'—'}</td>
+      <td>${row.strategic_partner!==undefined?Number(row.strategic_partner).toLocaleString('id'):'—'}</td>
+      <td>${vT?vT.toLocaleString('id'):'—'}</td>
+      <td>${eT?eT.toLocaleString('id'):'—'}</td>
+      <td>${fT?fT.toLocaleString('id'):'—'}</td>
+      <td>${row.npi_sales!==undefined?fmt(row.npi_sales,'IDR'):'—'}</td>
+      <td><span class="pic-badge">${row.input_by||'—'}</span></td>
+      <td style="color:var(--muted);font-size:0.72rem">${savedAt}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── NAV ───
+function switchView(name, btn) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  btn.classList.add('active');
+  if (name==='dashboard') renderDashboard();
+  if (name==='input') { renderInputTabs(); renderInputForms(); }
+  if (name==='history') renderHistory();
+}
+
+// ─── TOAST ───
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.className = `toast ${type}`; t.textContent = msg;
+  t.style.display='block';
+  setTimeout(()=>t.style.display='none', 3000);
+}
+
+// ─── COPY SCRIPT ───
+function copyScript() {
+  const code = `const SHEET_NAME = 'Data';
+
+// GET — kirim data sebagai CSV via "Publish to web" di Google Sheets
+// (dashboard membaca CSV langsung, tidak lewat Apps Script)
+
+// POST — terima data JSON dari dashboard via no-cors fetch
+function doPost(e) {
+  try {
+    const body = JSON.parse(e.postData.contents);
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+    const row = [
+      new Date(), body.bulan,
+      body.marketing_exec,
+      body.leads_kss, body.leads_kti,
+      body.opp_kss,   body.opp_kti,
+      body.event_leads, body.strategic_partner,
+      body.views_kss, body.engagement_kss, body.followers_kss,
+      body.views_sr, body.engagement_sr, body.followers_sr,
+      body.views_aed, body.engagement_aed, body.followers_aed,
+      body.npi_sales, body.input_by
+    ];
+    const existing = sheet.getDataRange().getValues();
+    for (let i = 1; i < existing.length; i++) {
+      if (String(existing[i][1]) === String(body.bulan)) {
+        sheet.getRange(i+1, 1, 1, row.length).setValues([row]);
+        return ok('updated');
+      }
+    }
+    sheet.appendRow(row);
+    return ok('saved');
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ok:false, error:err.message}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function ok(msg) {
+  return ContentService
+    .createTextOutput(JSON.stringify({ok:true, msg}))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+  navigator.clipboard.writeText(code).then(()=>showToast('📋 Script berhasil di-copy!','success'));
+}
+// ─── INIT ───
+updateStatus();
+if (!SCRIPT_URL) {
+  document.getElementById('setupModal').classList.remove('hidden');
+} else {
+  document.getElementById('setupModal').classList.add('hidden');
+  fetchFromSheets();
+}
+renderDashboard();
+</script>
+</body>
+</html>
